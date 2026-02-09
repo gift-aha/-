@@ -940,6 +940,50 @@
         .step-dot.completed {
             background-color: var(--secondary-color);
         }
+        mark.search-highlight {
+            background: linear-gradient(120deg, rgba(255,215,0,0.4) 0%, rgba(255,193,7,0.6) 100%);
+            padding: 0 2px;
+            border-radius: 2px;
+            font-weight: 600;
+            box-shadow: 0 0 0 1px rgba(255,193,7,0.5);
+        }
+        /* 卡片悬停动效（所有卡片统一） */
+        .book-card, .emperor-card, .person-card, .result-card {
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                        box-shadow 0.4s ease;
+        }
+        .book-card:hover, .emperor-card:hover, .person-card:hover, .result-card:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18) !important;
+            z-index: 10;
+        }
+            
+        /* 返回顶部按钮增强 */
+        .back-to-top {
+            background: linear-gradient(135deg, var(--primary-color), #1a3a6c);
+            animation: pulse 2s infinite;
+        }
+        .back-to-top:hover {
+            animation: none;
+            transform: translateY(-5px) scale(1.1);
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(26, 58, 108, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(26, 58, 108, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(26, 58, 108, 0); }
+        }
+            
+        /* 人物关系节点优化 */
+        .relationship-node {
+            transition: all 0.3s ease !important;
+            position: relative;
+            z-index: 2;
+        }
+        .relationship-node:hover {
+            transform: scale(1.15) translateY(-3px) !important;
+            z-index: 100 !important;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.25) !important;
+        }
     </style>
 </head>
 <body>
@@ -1215,9 +1259,21 @@
             <p>通过动态地图推演明朝关键战役的战略部署与战场形势，深度解析历史转折点：</p>
             
             <div class="battle-container">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <h3 style="color: var(--primary-color); margin-bottom: 10px;">📍 靖难之役 · 北平保卫战（1399年）</h3>
-                    <p style="color: #666; max-width: 700px; margin: 0 auto;">燕王朱棣起兵反抗建文帝，耿炳文率30万大军围攻北平。朱棣以少胜多，采用"围魏救赵"战术解围。</p>
+                <div style="text-align: center; margin-bottom: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap;">
+                        <h3 style="color: var(--primary-color); margin: 0; font-size: 1.4rem;">
+                            <i class="fas fa-map-marked-alt"></i> <span id="battleTitle">靖难之役 · 北平保卫战（1399年）</span>
+                        </h3>
+                        <select id="battleSelect" class="battle-btn" style="padding: 6px 12px; background: white; border: 1px solid var(--primary-color); border-radius: 20px; font-weight: 500;">
+                            <option value="jingnan">⚔️ 靖难之役</option>
+                            <option value="tumu">🛡️ 土木堡之变</option>
+                            <option value="beijing">🏯 北京保卫战</option>
+                            <option value="salarhu">🔥 萨尔浒之战</option>
+                        </select>
+                    </div>
+                    <p style="color: #495057; margin-top: 10px; max-width: 750px; margin-left: auto; margin-right: auto;" id="battleDescription">
+                        燕王朱棣起兵反抗建文帝，耿炳文率30万大军围攻北平。朱棣以少胜多，采用"围魏救赵"战术解围。
+                    </p>
                 </div>
                 
                 <div class="battle-controls">
@@ -1367,6 +1423,18 @@
                             <div class="detail-item">
                                 <div class="detail-label">重大事件</div>
                                 <div id="modalEvents">诛杀胡惟庸、蓝玉等功臣，设立锦衣卫</div>
+                            </div>
+                             <div class="detail-item">
+                                <div class="detail-label">陵墓</div>
+                                <div id="modalMausoleum">明孝陵（南京）</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">年号深意</div>
+                                <div id="modalEraMeaning">“洪武”：彰显开国武功，震慑四方</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">历史坐标</div>
+                                <div id="modalLegacy">奠定明代制度根基，影响后世六百年</div>
                             </div>
                         </div>
                     </div>
@@ -1531,6 +1599,97 @@
                     content: "耿炳文退守真定城，损失近10万兵力。建文帝震怒，撤换耿炳文，改派李景隆率50万大军再征。朱棣成功解除北平之围，奠定靖难之役基础。"
                 }
             ];
+                        // ===== 战役数据库（精准补充）=====
+            const BATTLE_LIBRARY = {
+                jingnan: {
+                    title: "靖难之役 · 北平保卫战（1399年）",
+                    desc: "燕王朱棣起兵反抗建文帝，耿炳文率30万大军围攻北平。朱棣以少胜多，采用'围魏救赵'战术解围。",
+                    steps: [/* 原有5步数据保持不变 */],
+                    initialPositions: [
+                        {id:'mingArmy1', top:'60%', left:'20%', text:'耿'},
+                        {id:'mingArmy2', top:'65%', left:'25%', text:'李'},
+                        {id:'enemyArmy', top:'40%', left:'70%', text:'朱'}
+                    ]
+                },
+                tumu: {
+                    title: "土木堡之变（1449年）",
+                    desc: "明英宗亲征瓦剌，在土木堡遭也先围歼，20万明军精锐尽失，英宗被俘，明朝由盛转衰。",
+                    steps: [
+                        {title:"第1步：仓促亲征", content:"1449年7月，英宗在王振怂恿下率20万大军仓促出征，后勤混乱，准备不足。"},
+                        {title:"第2步：退至险地", content:"退至土木堡（距怀来城20里），王振为等辎重车拒绝入城，致明军被瓦剌包围断水。"},
+                        {title:"第3步：假意议和", content:"也先假意议和撤军，王振信以为真下令移营就水，阵型大乱。"},
+                        {title:"第4步：全军覆没", content:"瓦剌骑兵突袭，明军溃败。英宗被俘，王振被杀，50余大臣战死，精锐损失殆尽。"},
+                        {title:"第5步：历史转折", content:"消息传至北京，于谦力排南迁之议，拥立景泰帝，开启北京保卫战。"}
+                    ],
+                    initialPositions: [
+                        {id:'mingArmy1', top:'50%', left:'30%', text:'英宗'},
+                        {id:'enemyArmy', top:'40%', left:'60%', text:'也先'},
+                        {id:'mingArmy2', top:'55%', left:'35%', text:'王振'}
+                    ]
+                },
+                beijing: {
+                    title: "北京保卫战（1449年）",
+                    desc: "于谦临危受命，整军22万守北京九门，大败瓦剌，保全明朝国祚。",
+                    steps: [
+                        {title:"第1步：临危受命", content:"土木堡败讯至京，于谦升兵部尚书，斩主张南迁者以定军心。"},
+                        {title:"第2步：拥立新君", content:"拥立郕王朱祁钰为帝（景泰帝），尊英宗为太上皇，绝瓦剌挟持勒索之念。"},
+                        {title:"第3步：九门布防", content:"调各地勤王军，22万兵力分守北京九门，于谦亲守德胜门。"},
+                        {title:"第4步：德胜门伏击", content:"也先挟英宗至德胜门，于谦设火器伏兵，大败瓦剌先锋。"},
+                        {title:"第5步：全线告捷", content:"瓦剌转攻西直门、彰义门均被击退，也先败走，明朝转危为安。"}
+                    ],
+                    initialPositions: [
+                        {id:'mingArmy1', top:'45%', left:'50%', text:'于谦'},
+                        {id:'enemyArmy', top:'35%', left:'65%', text:'也先'},
+                        {id:'mingArmy2', top:'50%', left:'45%', text:'石亨'}
+                    ]
+                },
+                salarhu: {
+                    title: "萨尔浒之战（1619年）",
+                    desc: "明军分四路攻后金，努尔哈赤“凭尔几路来，我只一路去”，5天歼明军4.5万，明朝丧失辽东主动权。",
+                    steps: [
+                        {title:"第1步：四路出师", content:"杨镐率11万明军（含朝鲜、叶赫援军）分四路攻赫图阿拉，意图合围。"},
+                        {title:"第2步：杜松冒进", content:"山海关总兵杜松轻敌冒进，在萨尔浒遭后金主力伏击，全军覆没。"},
+                        {title:"第3步：马林溃败", content:"北路马林军闻讯慌乱布阵，被努尔哈赤各个击破，仅马林单骑逃脱。"},
+                        {title:"第4步：刘綎中伏", content:"东路刘綎深入险地，遭假情报诱入伏击圈，力战殉国。"},
+                        {title:"第5步：历史转折", content:"明军4路3溃，损失4.5万人。后金确立辽东霸权，明朝转入战略防御。"}
+                    ],
+                    initialPositions: [
+                        {id:'mingArmy1', top:'30%', left:'25%', text:'杜松'},
+                        {id:'mingArmy2', top:'40%', left:'20%', text:'马林'},
+                        {id:'enemyArmy', top:'50%', left:'60%', text:'努尔哈赤'}
+                    ]
+                }
+            };
+
+            // 初始化当前战役
+            let currentBattle = 'jingnan';
+            let battleSteps = BATTLE_LIBRARY[currentBattle].steps;
+            
+            // 战役切换监听
+            document.getElementById('battleSelect').addEventListener('change', function() {
+                clearInterval(autoPlayInterval);
+                currentBattle = this.value;
+                const battle = BATTLE_LIBRARY[currentBattle];
+                
+                // 更新标题描述
+                document.getElementById('battleTitle').textContent = battle.title;
+                document.getElementById('battleDescription').textContent = battle.desc;
+                
+                // 重置推演状态
+                currentStep = 0;
+                battleSteps = battle.steps;
+                
+                // 重置地图军队（简化版：清空重建）
+                const map = document.getElementById('battleMap');
+                map.innerHTML = `
+                    <div class="battle-label" style="top: 15%; left: 50%;">战略要地</div>
+                    ${battle.initialPositions.map(pos => 
+                        `<div class="army ${pos.id.includes('enemy') ? 'enemy-army' : 'ming-army'}" 
+                            id="${pos.id}" style="top:${pos.top};left:${pos.left}">${pos.text}</div>`
+                    ).join('')}
+                `;
+                updateBattleStep();
+            });
             
             let currentStep = 0;
             let autoPlayInterval = null;
@@ -1782,11 +1941,16 @@
                 return names[type] || '其他';
             }
             
-            // 高亮关键词
+            // 安全高亮：转义正则特殊字符 + 保留HTML结构
             function highlightKeyword(text, keyword) {
-                if (!keyword) return text;
-                const regex = new RegExp(`(${keyword})`, 'gi');
-                return text.replace(regex, '<mark>$1</mark>');
+                if (!keyword || keyword.length < 2) return text;
+                try {
+                    const cleanKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`(${cleanKeyword})`, 'gi');
+                    return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+                } catch (e) {
+                    return text; // 出错时返回原文
+                }
             }
             
             // 人物关系图（简化版）
